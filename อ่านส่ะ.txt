@@ -1,0 +1,18 @@
+GitHub Copilot: # Git-Lark Deployment Notification Project
+
+## Overview
+โปรเจคนี้เป็นระบบแจ้งเตือนการ Deploy ผ่าน Lark Bot โดยรับ webhook จาก GitHub และส่งการแจ้งเตือนไปยัง Lark
+
+## Architecture
+- ใช้ Hexagonal Architecture (Ports & Adapters Pattern)
+- แยกส่วน Business Logic ออกจาก External Concerns
+- ง่ายต่อการทดสอบและบำรุงรักษา
+
+## Core Features
+1. รับ webhook จาก GitHub เมื่อมีการ deploy
+2. ประมวลผลข้อมูล deployment
+3. ส่งการแจ้งเตือนไปยัง Lark
+4. รองรับการ scale และเปลี่ยนแปลง platform ในอนาคต
+
+## Development Steps
+
