@@ -15,7 +15,7 @@ func Load() *Config {
 
 	larkWebhookURL := os.Getenv("LARK_WEBHOOK_URL")
 	if larkWebhookURL == "" {
-		larkWebhookURL = "https://open.larksuite.com/open-apis/bot/v2/hook/88fccfea-8fad-47d9-99a9-44d214785fff"
+		larkWebhookURL = "https://open.larksuite.com/open-apis/bot/v2/hook/66a2d4a9-a7dd-47d3-a15a-c11c6f97c7f5"
 	}
 
 	return &Config{
