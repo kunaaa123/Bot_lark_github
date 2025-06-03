@@ -29,5 +29,3 @@ func main() {
 	fmt.Printf("Server running on port %s\n", cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, nil))
 }
-
-////
