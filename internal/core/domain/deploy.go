@@ -52,6 +52,7 @@ type NotificationCard struct {
 	Actions     []Action
 }
 
+////
 type Action struct {
 	Text string
 	URL  string
