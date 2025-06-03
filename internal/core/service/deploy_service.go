@@ -42,8 +42,7 @@ func (s *DeployService) ProcessTestNotification() error {
 		Deployer:    "test-user",
 		ServiceName: "test-service",
 		CommitMsg:   "test: testing notification system",
-		RepoURL:     "https://github.com/kunaaa123/Bot_Test",
-		Timestamp:   time.Now(),
+		RepoURL:     "https://github.com/kunaaa123/Bot_Test", // Replace with actual repo URL
 	}
 
 	return s.notificationService.SendDeploymentNotification(info)
