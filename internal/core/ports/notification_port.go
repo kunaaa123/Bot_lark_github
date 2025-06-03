@@ -2,8 +2,9 @@ package ports
 
 import "bot-lark-github/internal/core/domain"
 
-// NotificationPort defines interface for sending notifications
-type NotificationPort interface {
-	// ส่งการแจ้งเตือนไปยัง Lark
-	SendNotification(event *domain.DeployEvent) error
+type NotificationService interface {
+	SendDeploymentNotification(info domain.DeploymentInfo) error
+	SendGitDeploymentNotification(info domain.GitCommitInfo) error
+	BuildNotificationCard(info domain.DeploymentInfo) domain.NotificationCard
+	BuildGitNotificationCard(info domain.GitCommitInfo) domain.NotificationCard
 }

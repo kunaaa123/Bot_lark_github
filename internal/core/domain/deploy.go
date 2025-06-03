@@ -2,14 +2,58 @@ package domain
 
 import "time"
 
-// DeployEvent represents a deployment event
-type DeployEvent struct {
-	Repository string    // ชื่อ repository
-	Branch     string    // ชื่อ branch
-	Commit     struct {
-		SHA     string   // รหัส commit
-		Message string   // ข้อความ commit
-		Author  string   // ผู้ commit
-	}
-	Timestamp time.Time  // เวลาที่ deploy
+type DeploymentInfo struct {
+	Environment string
+	Deployer    string
+	ServiceName string
+	CommitMsg   string
+	RepoURL     string
+	Timestamp   time.Time
+}
+
+type GitCommitInfo struct {
+	Message     string
+	Features    []string
+	Environment string
+	ServiceName string
+	Deployer    string
+	RepoURL     string
+}
+
+type GitHubPushEvent struct {
+	Ref        string
+	Repository Repository
+	Commits    []Commit
+}
+
+type Repository struct {
+	Name string
+}
+
+type Commit struct {
+	Message string
+	Author  Author
+}
+
+type Author struct {
+	Name  string
+	Email string
+}
+
+type NotificationCard struct {
+	Title       string
+	Template    string
+	Environment string
+	Deployer    string
+	ServiceName string
+	Message     string
+	RepoURL     string
+	Timestamp   time.Time
+	Actions     []Action
+}
+
+type Action struct {
+	Text string
+	URL  string
+	Type string
 }

@@ -1,26 +1,25 @@
 package config
 
-import (
-	"os"
-)
+import "os"
 
 type Config struct {
-	ServerPort     string
-	GitHubSecret   string
+	Port       string
 	LarkWebhookURL string
 }
 
-func New() *Config {
-	return &Config{
-		ServerPort:     getEnvOrDefault("SERVER_PORT", "8080"),
-		GitHubSecret:   getEnvOrDefault("GITHUB_SECRET", ""),
-		LarkWebhookURL: getEnvOrDefault("LARK_WEBHOOK_URL", ""),
+func Load() *Config {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-}
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+	larkWebhookURL := os.Getenv("LARK_WEBHOOK_URL")
+	if larkWebhookURL == "" {
+		larkWebhookURL = "https://open.larksuite.com/open-apis/bot/v2/hook/66a2d4a9-a7dd-47d3-a15a-c11c6f97c7f5"
 	}
-	return defaultValue
+
+	return &Config{
+		Port:       port,
+		LarkWebhookURL: larkWebhookURL,
+	}
 }

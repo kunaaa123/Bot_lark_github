@@ -1,112 +1,176 @@
 package secondary
 
 import (
+	"bot-lark-github/internal/core/domain"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"time"
-
-	"bot-lark-github/internal/core/domain"
 )
 
-// LarkAdapter implements NotificationPort interface
 type LarkAdapter struct {
 	webhookURL string
-	client     *http.Client
 }
 
-// NewLarkAdapter สร้าง instance ใหม่ของ LarkAdapter
 func NewLarkAdapter(webhookURL string) *LarkAdapter {
 	return &LarkAdapter{
 		webhookURL: webhookURL,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
+	}
+}
+
+func (l *LarkAdapter) SendDeploymentNotification(info domain.DeploymentInfo) error {
+	card := l.BuildNotificationCard(info)
+	return l.sendCard(card)
+}
+
+func (l *LarkAdapter) SendGitDeploymentNotification(info domain.GitCommitInfo) error {
+	card := l.BuildGitNotificationCard(info)
+	return l.sendCard(card)
+}
+
+func (l *LarkAdapter) BuildNotificationCard(info domain.DeploymentInfo) domain.NotificationCard {
+	return domain.NotificationCard{
+		Title:       "Backend Deployment Status",
+		Template:    "indigo",
+		Environment: info.Environment,
+		Deployer:    info.Deployer,
+		ServiceName: info.ServiceName,
+		Message:     "Latest Changes:\n" + info.CommitMsg,
+		RepoURL:     info.RepoURL,
+		Timestamp:   info.Timestamp,
+		Actions: []domain.Action{
+			{
+				Text: "View Repository",
+				URL:  info.RepoURL,
+				Type: "primary",
+			},
+			{
+				Text: "View Documentation",
+				URL:  "https://github.com/kunaaa123/Bot_Test/wiki",
+				Type: "default",
+			},
 		},
 	}
 }
 
-// โครงสร้างข้อมูลสำหรับส่งไป Lark
-type larkMessage struct {
-	MsgType string `json:"msg_type"`
-	Card    struct {
-		Header struct {
-			Title struct {
-				Tag     string `json:"tag"`
-				Content string `json:"content"`
-			} `json:"title"`
-		} `json:"header"`
-		Elements []struct {
-			Tag     string `json:"tag"`
-			Text    string `json:"text,omitempty"`
-			Content string `json:"content,omitempty"`
-		} `json:"elements"`
-	} `json:"card"`
+func (l *LarkAdapter) BuildGitNotificationCard(info domain.GitCommitInfo) domain.NotificationCard {
+	return domain.NotificationCard{
+		Title:       "Backend Deployment",
+		Template:    "blue",
+		Environment: info.Environment,
+		Deployer:    info.Deployer,
+		ServiceName: info.ServiceName,
+		Message:     fmt.Sprintf("Commit Messages:\n%s", info.Message),
+		RepoURL:     info.RepoURL,
+		Timestamp:   time.Now(),
+		Actions: []domain.Action{
+			{
+				Text: "View Repository",
+				URL:  info.RepoURL,
+				Type: "primary",
+			},
+		},
+	}
 }
 
-// custom errors
-var (
-	ErrEmptyWebhookURL = errors.New("webhook URL is empty")
-	ErrSendMessage     = errors.New("failed to send message to Lark")
-)
+func (l *LarkAdapter) sendCard(card domain.NotificationCard) error {
+	payload := l.buildLarkPayload(card)
 
-// SendNotification ส่งการแจ้งเตือนไปยัง Lark
-func (a *LarkAdapter) SendNotification(event *domain.DeployEvent) error {
-	if a.webhookURL == "" {
-		return ErrEmptyWebhookURL
-	}
-
-	// สร้าง message card
-	msg := &larkMessage{
-		MsgType: "interactive",
-	}
-
-	// set header
-	msg.Card.Header.Title.Tag = "plain_text"
-	msg.Card.Header.Title.Content = fmt.Sprintf("🚀 New Deployment: %s", event.Repository)
-
-	// add elements
-	msg.Card.Elements = []struct {
-		Tag     string `json:"tag"`
-		Text    string `json:"text,omitempty"`
-		Content string `json:"content,omitempty"`
-	}{
-		{
-			Tag: "markdown",
-			Text: fmt.Sprintf("**Branch:** %s\n**Commit:** %s\n**Author:** %s\n**Message:** %s",
-				event.Branch,
-				event.Commit.SHA,
-				event.Commit.Author,
-				event.Commit.Message),
-		},
-		{
-			Tag:     "note",
-			Content: fmt.Sprintf("Deployed at: %s", event.Timestamp.Format(time.RFC3339)),
-		},
-	}
-
-	// แปลงเป็น JSON
-	payload, err := json.Marshal(msg)
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
+		return fmt.Errorf("error marshaling payload: %v", err)
 	}
 
-	// ส่ง HTTP POST request
-	resp, err := a.client.Post(
-		a.webhookURL,
-		"application/json",
-		bytes.NewBuffer(payload),
-	)
+	log.Printf("Sending payload to Lark: %s", string(payloadBytes))
+
+	resp, err := http.Post(l.webhookURL, "application/json", bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrSendMessage, err)
+		return fmt.Errorf("error sending to Lark: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// ตรวจสอบ response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status code %d", ErrSendMessage, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response: %v", err)
 	}
 
+	log.Printf("Lark Response: %s", string(body))
 	return nil
+}
+
+func (l *LarkAdapter) buildLarkPayload(card domain.NotificationCard) map[string]interface{} {
+	elements := []map[string]interface{}{
+		{
+			"tag": "div",
+			"text": map[string]interface{}{
+				"content": fmt.Sprintf("Environment: %s\nDeployer: %s\nService: %s",
+					card.Environment, card.Deployer, card.ServiceName),
+				"tag": "lark_md",
+			},
+		},
+	}
+
+	if card.Message != "" {
+		elements = append(elements, map[string]interface{}{
+			"tag": "hr",
+		})
+		elements = append(elements, map[string]interface{}{
+			"tag": "div",
+			"text": map[string]interface{}{
+				"content": card.Message,
+				"tag":     "lark_md",
+			},
+		})
+	}
+
+	elements = append(elements, map[string]interface{}{
+		"tag": "hr",
+	})
+
+	elements = append(elements, map[string]interface{}{
+		"tag": "note",
+		"elements": []map[string]interface{}{
+			{
+				"tag":     "plain_text",
+				"content": fmt.Sprintf("Deployed at: %s", card.Timestamp.Format("2006-01-02 15:04:05")),
+			},
+		},
+	})
+
+	if len(card.Actions) > 0 {
+		actions := make([]map[string]interface{}, len(card.Actions))
+		for i, action := range card.Actions {
+			actions[i] = map[string]interface{}{
+				"tag": "button",
+				"text": map[string]interface{}{
+					"content": action.Text,
+					"tag":     "plain_text",
+				},
+				"type": action.Type,
+				"url":  action.URL,
+			}
+		}
+
+		elements = append(elements, map[string]interface{}{
+			"tag":     "action",
+			"actions": actions,
+		})
+	}
+
+	return map[string]interface{}{
+		"msg_type": "interactive",
+		"card": map[string]interface{}{
+			"header": map[string]interface{}{
+				"title": map[string]interface{}{
+					"content": card.Title,
+					"tag":     "plain_text",
+				},
+				"template": card.Template,
+			},
+			"elements": elements,
+		},
+	}
 }
