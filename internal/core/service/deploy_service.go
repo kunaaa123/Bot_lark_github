@@ -42,7 +42,7 @@ func (s *DeployService) ProcessTestNotification() error {
 		Deployer:    "test-user",
 		ServiceName: "test-service",
 		CommitMsg:   "test: testing notification system",
-		RepoURL:     "https://github.com/kunaaa123/Bot_Test",
+		RepoURL:     "https://github.com/kunaaa123/Bot_Test", //ต้องเปลี่ยนเป็น URL ของ repo ที่ต้องการตาม github ที่ใช้งาน
 		Timestamp:   time.Now(),
 	}
 
